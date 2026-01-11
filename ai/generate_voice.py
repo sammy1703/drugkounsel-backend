@@ -3,8 +3,6 @@ import os
 import json
 import time
 
-# -------- PATHS (CONFIRMED) --------
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TEXT_DIR = os.path.join(BASE_DIR, "counseling_json", "ur")
@@ -12,8 +10,6 @@ VOICE_DIR = os.path.join(BASE_DIR, "voice", "ur")
 
 client = OpenAI(max_retries=2)
 VOICE = "alloy"
-
-# ----------------------------------
 
 
 def generate_voice(text, output_path):
@@ -31,9 +27,6 @@ def generate_voice(text, output_path):
 
 
 def main():
-    print("📂 Reading Telugu text from:", TEXT_DIR)
-    print("🎧 Saving Telugu voice to :", VOICE_DIR)
-
     if not os.path.isdir(TEXT_DIR):
         print("❌ TEXT_DIR NOT FOUND")
         return
@@ -44,37 +37,25 @@ def main():
         if not file.endswith(".json"):
             continue
 
-        medicine = file.replace(".json", "")
-        audio_path = os.path.join(VOICE_DIR, medicine + ".mp3")
+        json_path = os.path.join(TEXT_DIR, file)
+        audio_path = os.path.join(VOICE_DIR, file.replace(".json", ".mp3"))
 
         if os.path.exists(audio_path):
-            print("⏭️ Skipped:", medicine + ".mp3")
             continue
-
-        json_path = os.path.join(TEXT_DIR, file)
 
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            if "counseling" in data:
-                text = data["counseling"]
-            elif "ai_counseling" in data:
-                text = data["ai_counseling"]
-            else:
-                print("⚠️ No counseling text in:", file)
-                continue
-
-            text = text.strip()
+            text = data.get("ai_counseling") or data.get("counseling")
             if not text:
-                print("⚠️ Empty text:", file)
                 continue
 
-            generate_voice(text, audio_path)
+            generate_voice(text.strip(), audio_path)
 
         except Exception as e:
-            print("❌ Failed:", file, e)
-            time.sleep(3)
+            print("❌ VOICE ERROR:", e)
+            time.sleep(2)
 
 
 if __name__ == "__main__":
