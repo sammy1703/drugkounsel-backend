@@ -17,6 +17,13 @@ def health():
     return {"status": "ok"}
 
 
+@app.route("/voices/<lang>/<filename>")
+def serve_voice(lang, filename):
+    import flask
+    voices_dir = os.path.join(os.getcwd(), "ai", "voice", lang)
+    return flask.send_from_directory(voices_dir, filename)
+
+
 @app.route("/api/counseling", methods=["POST"])
 def counseling():
     try:
@@ -41,7 +48,10 @@ def counseling():
 
         return jsonify({
             "found": bool(result["text"]),
+            "drug": drug,
+            "language": lang,
             "counseling": result["text"],
+            "warnings": result["interactions"],
             "interactions": result["interactions"],
             "audio": result["audio"]
         })

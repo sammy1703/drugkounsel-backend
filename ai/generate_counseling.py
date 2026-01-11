@@ -152,8 +152,20 @@ def generate_and_store_counseling(medicine: str, lang: str, existing_drugs: list
 
     interactions = generate_interactions_section(medicine, existing_drugs, lang)
 
+    # 4. GENERATE TTS IF NOT EXISTS
+    voice_dir = os.path.join(BASE_DIR, "voice", lang)
+    os.makedirs(voice_dir, exist_ok=True)
+    audio_file_name = f"{safe_name}.mp3"
+    audio_full_path = os.path.join(voice_dir, audio_file_name)
+
+    if not os.path.exists(audio_full_path) and base_text:
+        try:
+            generate_tts(base_text, language=lang, output_path=audio_full_path)
+        except Exception as e:
+            print(f"❌ TTS ERROR: {e}")
+
     return {
         "text": base_text,
         "interactions": interactions,
-        "audio": None
+        "audio": f"/voices/{lang}/{audio_file_name}" if os.path.exists(audio_full_path) else None
     }
