@@ -37,33 +37,33 @@ You are an experienced clinical pharmacist.
 Generate INDIVIDUALIZED, MEDICINE-SPECIFIC patient counseling for: "{medicine}".
 Language: "{lang}"
 
-STRICT FORMATTING RULE:
-The frontend splits text by "\\nNumber. ".
-You MUST output the text in this EXACT structure:
+You MUST output a JSON object with a key "sections".
+The value of "sections" must be a list of objects, each with "header" and "content".
 
+REQUIRED SECTIONS:
 1. WHAT IS THIS MEDICINE FOR
-(Put content on this new line. Do NOT use a colon after the header.)
-
 2. HOW TO TAKE
-(Put content on this new line.)
-
 3. IMPORTANT WARNINGS
-(Put content on this new line.)
-
 4. COMMON SIDE EFFECTS
-(Put content on this new line.)
-
 5. GENERAL INSTRUCTIONS
-(Put content on this new line.)
-
 6. DRUG FOOD INTERACTION
-(Put content on this new line.)
+
+Example Structure:
+{{
+  "sections": [
+    {{
+      "header": "1. WHAT IS THIS MEDICINE FOR",
+      "content": "Explanation in {lang}..."
+    }},
+    ...
+  ]
+}}
 
 CONTENT RULES:
 - Use simple Layman terms.
 - Be specific to "{medicine}".
-- Do NOT include markdown.
-- Ensure a newline between header and content.
+- Do NOT include markdown bold or stars.
+- Content must be in "{lang}".
 """
 
     try:
@@ -80,15 +80,7 @@ CONTENT RULES:
         content = response.choices[0].message.content
         data = json.loads(content)
 
-        if "ai_counseling" in data:
-            return data["ai_counseling"]
-
-        constructed = []
-        for key, value in data.items():
-            if key and key[0].isdigit():
-                constructed.append(f"{key}\n{value}")
-
-        return "\n\n".join(constructed) if constructed else None
+        return data.get("sections")
 
     except Exception as e:
         print("❌ OPENAI ERROR:", e)
@@ -152,20 +144,26 @@ def generate_and_store_counseling(medicine: str, lang: str, existing_drugs: list
 
     interactions = generate_interactions_section(medicine, existing_drugs, lang)
 
+    # Convert to string if it's structured for TTS
+    tts_input = base_text
+    if isinstance(base_text, list):
+        tts_input = "\n\n".join([f"{s['header']}\n{s['content']}" for s in base_text])
+
     # 4. GENERATE TTS IF NOT EXISTS
     voice_dir = os.path.join(BASE_DIR, "voice", lang)
     os.makedirs(voice_dir, exist_ok=True)
     audio_file_name = f"{safe_name}.mp3"
     audio_full_path = os.path.join(voice_dir, audio_file_name)
 
-    if not os.path.exists(audio_full_path) and base_text:
+    if not os.path.exists(audio_full_path) and tts_input:
         try:
-            generate_tts(base_text, language=lang, output_path=audio_full_path)
+            generate_tts(tts_input, language=lang, output_path=audio_full_path)
         except Exception as e:
             print(f"❌ TTS ERROR: {e}")
 
     return {
-        "text": base_text,
+        "text": tts_input if isinstance(base_text, list) else base_text,
+        "sections": base_text if isinstance(base_text, list) else None,
         "interactions": interactions,
         "audio": f"/voices/{lang}/{audio_file_name}" if os.path.exists(audio_full_path) else None
     }

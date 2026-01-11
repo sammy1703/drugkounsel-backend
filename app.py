@@ -51,6 +51,7 @@ def counseling():
             "drug": drug,
             "language": lang,
             "counseling": result["text"],
+            "sections": result.get("sections"),
             "warnings": result["interactions"],
             "interactions": result["interactions"],
             "audio": result["audio"]
