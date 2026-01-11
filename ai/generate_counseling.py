@@ -134,6 +134,7 @@ def generate_and_store_counseling(medicine: str, lang: str, existing_drugs: list
     os.makedirs(lang_dir, exist_ok=True)
 
     file_path = os.path.join(lang_dir, f"{safe_name}.json")
+
     base_text = None
 
     if os.path.exists(file_path):
